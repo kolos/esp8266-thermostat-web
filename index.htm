@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html lang="hu">
+    <head>
+        <title>
+            ESP8266 - Termosztát
+        </title>
+        <meta charset="utf8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			* {
+				box-sizing: border-box;
+				font-family: 'Segoe UI';
+				background-color: darkgrey;
+			}
+			
+			#content{
+				width: 300px;
+				margin: auto;
+				border: 1px solid grey;
+			}
+			
+			div.inner{
+				background: #eee;
+				padding: 10px 0;
+				text-align: center;
+			}
+			
+			span.temp{
+				font-size: 2.5em;
+			}
+			span.temp-small{
+				font-size: 1.5em;
+			}
+			
+			span.data{
+				background: #eee;
+			}
+					
+			div.inner-small{
+				font-size: 0.7em;
+				background: #eee;
+				padding: 10px 0;
+				text-align: center;
+			}
+			
+			span.data.bold {
+				font-weight: bold;
+			}
+			
+			span.heat-status{
+				color: green;
+				font-size: 1.1em;
+			}
+			
+			span.heat-status-active::after{
+				color: green;
+				content: "Aktív";
+			}
+			
+			span.heat-status-inactive::after{
+				color: red;
+				content: "Inaktív";
+			}
+			
+		</style>
+    </head>
+    <body>
+		<div id="content">
+			<div class="inner">
+				<span class="data" id="current-time">###</span>
+				<br/>
+				🌡<span class="data temp" id="temp-decimal">###</span><span class="data temp-small" id="temp-fraction">###</span>°C
+			</div>
+			<div class="inner">
+				Fűtés: <span class="data bold heat-status heat-status-inactive" id="heat-status"></span>
+				<br/><span class="data" id="heat-changed-since">###</span>
+			</div>
+			<div class="inner">
+				🌞 <span class="data target-temp bold">21.5</span>°C, <span class="data" id="max-heating-time-offset">###</span>
+			</div>
+			<div class="inner">
+				🌜 <span class="data target-temp bold">16</span>°C, <span class="data" id="min-heating-time-offset">###</span>
+			</div>
+			<div class="inner-small">
+				<table width=100% style="background: #eee">
+					<tr>
+						<td align="left" style="width:33%;background: #eee">🖥 <span class="data bold" id="heap">###</span> B</td>
+						<td style="width:33%;background: #eee; text-align: center">📶 <span class="data bold" id="wifi">###</span>%</td>
+						<td align="right" style="width:33%;background: #eee">⏳ <span class="data bold" id="uptime_string">###</span></td>
+					</tr>
+				</table>				
+			</div>
+		</div>
+		<script type="text/javascript">
+			var data = null;
+			
+			var update = function() {
+				updateData();
+			};
+			
+			var updateData = function() {
+				fetch("thermos_info")
+				  .then(function(response) {
+					return response.json();
+				  })
+				  .then(function(jsonResponse) {
+					data = jsonResponse;
+					updateFrontend();
+				  });
+			};
+			
+			var updateFrontend = function() {
+				
+				var currentTime = new Date(data.current_time * 1000);
+				
+				setVal("current-time", padZero(currentTime.getUTCHours()) + ":" + padZero(currentTime.getUTCMinutes()));
+				
+				setVal("temp-decimal", (data.current_temp +"").split(".")[0]);
+				setVal("temp-fraction", "." + (data.current_temp +"").split(".")[1]);
+				
+				if(data.heating_is_on == 1) {
+					setCss("heat-status", "heat-status-active");
+					unsetCss("heat-status", "heat-status-inactive");
+				} else {
+					setCss("heat-status", "heat-status-inactive");
+					unsetCss("heat-status", "heat-status-active");
+				}
+				
+				setVal("heat-changed-since", elapsedsecsHumanReadable(data.current_time - data.heating_changed));
+				
+				var timeFrame = getCurrentTimeFrame();
+				if(timeFrame.warm == true) {
+					setVal("max-heating-time-offset", elapsedsecsHumanReadable( 60 * (timeFrame.minutes - timeFrame.periods[0])));
+					setVal("min-heating-time-offset", remainingsecsHumanReadable( 60 * (timeFrame.periods[1] - timeFrame.minutes)));
+				} else {
+					setVal("max-heating-time-offset", remainingsecsHumanReadable( (timeFrame.minutes - timeFrame.periods[0]) * 60));
+					setVal("min-heating-time-offset", elapsedsecsHumanReadable( (timeFrame.periods[1] - timeFrame.minutes) *60));
+				}
+				
+				setVal("heap", data.freeheap);
+				setVal("uptime_string" , getUptimeString());
+				
+				setVal("wifi", 2 * (data.rssi + 100));
+			};
+			
+			var setVal = function(id, val) {
+				document.getElementById(id).innerHTML = val;
+			};
+			
+			var setCss = function(id, val) {
+				document.getElementById(id).classList.add(val);
+			}
+			
+			var unsetCss = function(id, val) {
+				document.getElementById(id).classList.remove(val);
+			}
+			
+			var padZero = function(be) {
+				if(be < 10)
+					return "0" + be;
+				
+				return be;
+			}
+			
+			var secsHumanReadable = function(secs) {
+				var absSecs = Math.abs(secs);
+				
+				if(absSecs < 60)
+					return absSecs + " mp";
+				
+				if(absSecs < 60 * 60)
+					return (absSecs / 60).toFixed(0) + " perc";
+					
+				return (absSecs / 60 / 60).toFixed(0) + " óra";
+			}
+			
+			var remainingsecsHumanReadable = function(elapsed) {
+				return secsHumanReadable(elapsed) + " múlva";
+			}
+			
+			var elapsedsecsHumanReadable = function(elapsed) {		
+								
+				return secsHumanReadable(elapsed) + " óta";
+			}
+			
+			var getCurrentTimeFrame = function() {
+				for(var id in data.warm_periods) {
+					if(! data.warm_periods[id]) continue;
+
+					if(data.minutes_since_monday >= data.warm_periods[id][0] && data.minutes_since_monday <= data.warm_periods[id][1]) {
+						return {"periods": data.warm_periods[id], "minutes": data.minutes_since_monday, "warm": true};
+					}
+				}
+				
+				periods = [];
+				var minutes_since_monday = data.minutes_since_monday + 60 * 24 * 7;
+				
+				for(var i = 0; i<3; i++) {
+					for(var id in data.warm_periods) {
+						if(! data.warm_periods[id]) continue;
+						
+						periods.push([
+							data.warm_periods[id][0] + (i * 60 * 24 *7),
+							data.warm_periods[id][1] + (i * 60 * 24 *7)
+						]);
+					}
+				}
+
+				var max_end = 0;
+				var min_start = minutes_since_monday + 60 * 24 * 7;
+				
+				for(var id in periods) {
+					if(periods[id][1] > max_end && periods[id][1] < minutes_since_monday) {
+						max_end = periods[id][1];
+					}
+
+					if(periods[id][0] < min_start && periods[id][0] > minutes_since_monday) {
+						min_start = periods[id][0];
+					}				
+				}
+				
+				return {"periods":  [max_end, min_start], "minutes": minutes_since_monday, "warm": false};
+			}
+			
+			var getUptimeString = function() {
+				var uptime_secs = (data.uptime / 1000) | 0;
+				
+				var hours = parseInt( uptime_secs / 3600 ) % 24;
+				var minutes = parseInt( uptime_secs / 60 ) % 60;
+				var seconds = uptime_secs % 60;
+				
+				return padZero(hours) + "h " + padZero(minutes) + "m " + padZero(seconds) + "s";
+			}
+			
+			update();
+			setInterval(update, 60000);
+		</script>
+	</body>
+</html>
