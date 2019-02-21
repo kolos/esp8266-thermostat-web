@@ -133,8 +133,8 @@
 					setVal("max-heating-time-offset", elapsedsecsHumanReadable( 60 * (timeFrame.minutes - timeFrame.periods[0])));
 					setVal("min-heating-time-offset", remainingsecsHumanReadable( 60 * (timeFrame.periods[1] - timeFrame.minutes)));
 				} else {
-					setVal("max-heating-time-offset", remainingsecsHumanReadable( (timeFrame.minutes - timeFrame.periods[0]) * 60));
-					setVal("min-heating-time-offset", elapsedsecsHumanReadable( (timeFrame.periods[1] - timeFrame.minutes) *60));
+					setVal("max-heating-time-offset", remainingsecsHumanReadable( (timeFrame.periods[1] - timeFrame.minutes) *60) );
+					setVal("min-heating-time-offset", elapsedsecsHumanReadable( (timeFrame.minutes - timeFrame.periods[0]) * 60));
 				}
 				
 				setVal("heap", data.freeheap);
@@ -225,11 +225,12 @@
 			var getUptimeString = function() {
 				var uptime_secs = (data.uptime / 1000) | 0;
 				
+				var days = parseInt( uptime_secs / 3600 / 24);
 				var hours = parseInt( uptime_secs / 3600 ) % 24;
 				var minutes = parseInt( uptime_secs / 60 ) % 60;
 				var seconds = uptime_secs % 60;
 				
-				return padZero(hours) + "h " + padZero(minutes) + "m " + padZero(seconds) + "s";
+				return padZero(days) + "d " + padZero(hours) + "h " + padZero(minutes) + "m";
 			}
 			
 			update();
