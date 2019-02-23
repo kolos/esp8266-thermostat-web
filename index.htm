@@ -115,8 +115,9 @@
 				
 				setVal("current-time", padZero(currentTime.getUTCHours()) + ":" + padZero(currentTime.getUTCMinutes()));
 				
-				setVal("temp-decimal", (data.current_temp +"").split(".")[0]);
-				setVal("temp-fraction", "." + (data.current_temp +"").split(".")[1]);
+				var [temp_decimal, temp_fraction = false] = (data.current_temp +"").split(".");
+				setVal("temp-decimal", temp_decimal);
+				setVal("temp-fraction", temp_fraction ? "." + temp_fraction : "");
 				
 				if(data.heating_is_on == 1) {
 					setCss("heat-status", "heat-status-active");
