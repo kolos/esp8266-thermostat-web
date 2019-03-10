@@ -76,10 +76,10 @@
 				<br/><span class="data" id="heat-changed-since">###</span>
 			</div>
 			<div class="inner">
-				🌞 <span class="data target-temp bold">21.5</span>°C, <span class="data" id="max-heating-time-offset">###</span>
+				🌞 <span class="data target-temp bold" id="target-max-heating">###</span>°C, <span class="data" id="max-heating-time-offset">###</span>
 			</div>
 			<div class="inner">
-				🌜 <span class="data target-temp bold">16</span>°C, <span class="data" id="min-heating-time-offset">###</span>
+				🌜 <span class="data target-temp bold" id="target-min-heating">###</span>°C, <span class="data" id="min-heating-time-offset">###</span>
 			</div>
 			<div class="inner-small">
 				<table width=100% style="background: #eee">
@@ -141,6 +141,9 @@
 				setVal("heap", data.freeheap);
 				setVal("uptime_string" , getUptimeString());
 				
+				setVal("target-max-heating", data.hard_max + data.turn_off_offset);
+				setVal("target-min-heating", data.hard_min);
+
 				setVal("wifi", 2 * (data.rssi + 100));
 			};
 			
