@@ -62,6 +62,21 @@
 				content: "Inaktív";
 			}
 			
+			span.control-status{
+				color: green;
+				font-size: 1.1em;
+			}
+
+			span.control-status-active::after{
+				color: green;
+				content: "Aktív";
+			}
+
+			span.control-status-inactive::after{
+				color: red;
+				content: "Inaktív";
+			}
+
 		</style>
     </head>
     <body>
@@ -72,6 +87,7 @@
 				🌡<span class="data temp" id="temp-decimal">###</span><span class="data temp-small" id="temp-fraction">###</span>°C
 			</div>
 			<div class="inner">
+				Vezérlés: <span class="data bold control-status control-status-inactive" id="control-status"></span><br/>
 				Fűtés: <span class="data bold heat-status heat-status-inactive" id="heat-status"></span>
 				<br/><span class="data" id="heat-changed-since">###</span>
 			</div>
@@ -80,6 +96,9 @@
 			</div>
 			<div class="inner">
 				🌜 <span class="data target-temp bold" id="target-min-heating">###</span>°C, <span class="data" id="min-heating-time-offset">###</span>
+			</div>
+			<div class="inner">
+				<button onclick="toggleThermosControl();">Vezérlés ki/be</button>
 			</div>
 			<div class="inner-small">
 				<table width=100% style="background: #eee">
@@ -94,6 +113,12 @@
 		<script type="text/javascript">
 			var data = null;
 			
+			var toggleThermosControl = function() {
+				fetch("thermos_toggle", {
+					method: "POST",
+				}).then(update);
+			}
+
 			var update = function() {
 				updateData();
 			};
@@ -119,6 +144,14 @@
 				setVal("temp-decimal", temp_decimal);
 				setVal("temp-fraction", temp_fraction ? "." + temp_fraction : "");
 				
+				if(data.thermos_control_enabled == 1) {
+					setCss("control-status", "control-status-active");
+					unsetCss("control-status", "control-status-inactive");
+				} else {
+					setCss("control-status", "control-status-inactive");
+					unsetCss("control-status", "control-status-active");
+				}
+
 				if(data.heating_is_on == 1) {
 					setCss("heat-status", "heat-status-active");
 					unsetCss("heat-status", "heat-status-inactive");
